@@ -18,7 +18,10 @@ import adminRoutes from "./routes/adminRoutes.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
-const origins = (process.env.CLIENT_URL || "http://localhost:3000").split(",").map((o) => o.trim());
+const origins = (process.env.CLIENT_URL || "http://localhost:3000")
+  .split(",")
+  .map((o) => o.trim().replace(/\/+$/, ""))
+  .filter(Boolean);
 
 if (process.env.TRUST_PROXY) app.set("trust proxy", Number(process.env.TRUST_PROXY) || process.env.TRUST_PROXY);
 
@@ -50,9 +53,10 @@ app.use("/api/admin", adminRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
-connectDB()
-  .then(() => app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`)))
-  .catch((err) => {
-    console.error("Failed to start server:", err.message);
-    process.exit(1);
-  });
+// Open the port first so Render detects the service, then connect to MongoDB.
+app.listen(PORT, "0.0.0.0", () => console.log(`API listening on port ${PORT}`));
+
+connectDB().catch((err) => {
+  console.error("MongoDB connection failed:", err.message);
+  process.exit(1);
+});
